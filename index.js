@@ -27,7 +27,19 @@ app.use(cookieParser())
 // middleware
 const tokenVerify = async (req, res, next) => {
     const token = req.cookies.token;
-    console.log("verify ", token);
+    
+    if (!token) {
+        return res.status(401).send("unAuthorize user")
+    }
+    
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+             return res.status(401).send("unAuthorize user")
+        }
+
+        req.user = decoded;
+        next()
+    })
 }
 
 
@@ -64,13 +76,29 @@ async function run() {
           
           res
               .cookie('token', token, cookieOption)
-              .send(token)
+              .send({success: true})
     })
 
 
     //  foods rest apis
-    app.get('/foods', async (req, res) => {
-        const result = await foodsCollection.find().toArray()
+      app.get('/foods', async (req, res) => {
+        const query = {statusFood: "available"}
+        const result = await foodsCollection.find(query).toArray()
+
+        res.send(result)
+      })
+
+      app.get('/foods/:email', async (req, res) => {
+          const email = req.params.email;
+          console.log(email);
+      })
+
+
+      
+    //  foods rest apis
+      app.get('/foodsAcc', async (req, res) => {
+        const query = {statusFood: "available"}
+        const result = await foodsCollection.find(query).sort({foodQuantity: -1}).toArray()
 
         res.send(result)
     })
@@ -80,7 +108,6 @@ async function run() {
         const food = req.body;
         const token = req.cookies.token;
         console.log(token);
-        return
         const result = await foodsCollection.insertOne(food)
         res.send(result)
     })
