@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken')
@@ -72,7 +72,6 @@ async function run() {
           const user = req.body;
        
           const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" })
-          console.log("i am token", token);
           
           res
               .cookie('token', token, cookieOption)
@@ -85,7 +84,6 @@ async function run() {
       const available = req.query.avi;
       const sort = req.query.sort;
       const search = req.query.search;
-      console.log(available, sort, search);
       
 
       let query = {
@@ -102,7 +100,15 @@ async function run() {
       
         const result = await foodsCollection.find(query,options).toArray()
         res.send(result)
-      })
+    })
+    
+    // get single food
+    app.get('/food/:id', tokenVerify, async (req, res) => {
+      const id = req.params.id;
+
+      const result = await foodsCollection.findOne({ _id: new ObjectId(id) })
+      res.send(result)
+    })
 
     // add food manage
       app.get('/foodss', tokenVerify, async (req, res) => {
@@ -124,10 +130,8 @@ async function run() {
           const result = await foodsCollection.find(query).toArray()
           res.send(result)
       })
-
-
       
-    //  foods rest apis
+    //  foods rest apis in home page
       app.get('/foodsAcc', async (req, res) => {
         const query = {statusFood: "available"}
         const result = await foodsCollection.find(query).sort({foodQuantity: -1}).toArray()
@@ -144,7 +148,29 @@ async function run() {
       res.send(result)
     })
 
+    // update food
+    app.patch('/food/:id', tokenVerify, async (req, res) => {
+      const id = req.params.id;
+      const food = req.body;
+
+
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          ...food
+        }
+      }
+      const result = await foodsCollection.updateOne(filter, updateDoc);
+      res.send(result)
+    })
       
+    // delete single food
+    app.delete('/food/:id', tokenVerify, async (req, res) => {
+      const id = req.params.id;
+
+      const result = await foodsCollection.deleteOne({ _id: new ObjectId(id) })
+      res.send(result)
+    })
 
 
     // Send a ping to confirm a successful connection
