@@ -113,6 +113,8 @@ async function run() {
     // add food manage
       app.get('/foodss', tokenVerify, async (req, res) => {
         let query = {}
+        const request = req.query.requ;
+        console.log(request);
 
         const user = req.user.email;
         const email = req.query.email;
@@ -121,9 +123,13 @@ async function run() {
         if (email !== user) {
             return res.status(403).send('Forbidden Access')
         }
-
-        if (req.query.email) {
-           query = { 'donateUser.email': email };
+        
+        if (request) {
+          query.statusFood = request;
+          query['userEmail'] = email;
+        }
+        else {
+          query = { 'donateUser.email': email }
         }
       
           
@@ -149,18 +155,18 @@ async function run() {
     })
 
     // update food
-    app.patch('/food/:id', tokenVerify, async (req, res) => {
+    app.put('/food/:id', tokenVerify, async (req, res) => {
       const id = req.params.id;
       const food = req.body;
 
-
+      const options = {upsert: true}
       const filter = { _id: new ObjectId(id) }
       const updateDoc = {
         $set: {
           ...food
         }
       }
-      const result = await foodsCollection.updateOne(filter, updateDoc);
+      const result = await foodsCollection.updateOne(filter, updateDoc,options);
       res.send(result)
     })
       
