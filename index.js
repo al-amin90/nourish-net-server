@@ -24,6 +24,18 @@ app.use(express.json())
 app.use(cookieParser())
 
 
+const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.PASS_DB}@cluster0.hjmc0vt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+
 // middleware
 const tokenVerify = async (req, res, next) => {
     const token = req.cookies.token;
@@ -41,18 +53,6 @@ const tokenVerify = async (req, res, next) => {
         next()
     })
 }
-
-
-const uri = `mongodb+srv://${process.env.USER_DB}:${process.env.PASS_DB}@cluster0.hjmc0vt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
 
 const cookieOption = {
     httpOnly: true,
@@ -81,16 +81,48 @@ async function run() {
 
 
     //  foods rest apis
-      app.get('/foods', async (req, res) => {
-        const query = {statusFood: "available"}
-        const result = await foodsCollection.find(query).toArray()
+    app.get('/foods', async (req, res) => {
+      const available = req.query.avi;
+      const sort = req.query.sort;
+      const search = req.query.search;
+      console.log(available, sort, search);
+      
 
+      let query = {
+        foodName: {$regex: search, $options: "i"},
+      }
+      let options = {}
+
+      if (available) {
+        query.statusFood = available
+      }
+      if(sort) {
+        options = {sort: {expiredDate: sort === "Ascending Order" ? 1 : -1}}
+      }
+      
+        const result = await foodsCollection.find(query,options).toArray()
         res.send(result)
       })
 
-      app.get('/foods/:email', async (req, res) => {
-          const email = req.params.email;
-          console.log(email);
+    // add food manage
+      app.get('/foodss', tokenVerify, async (req, res) => {
+        let query = {}
+
+        const user = req.user.email;
+        const email = req.query.email;
+
+        // verifying-------
+        if (email !== user) {
+            return res.status(403).send('Forbidden Access')
+        }
+
+        if (req.query.email) {
+           query = { 'donateUser.email': email };
+        }
+      
+          
+          const result = await foodsCollection.find(query).toArray()
+          res.send(result)
       })
 
 
@@ -104,12 +136,12 @@ async function run() {
     })
 
     //  post food
-    app.post('/foods',tokenVerify, async (req, res) => {
+    app.post('/foods',tokenVerify, async (req, res) => {  
         const food = req.body;
-        const token = req.cookies.token;
-        console.log(token);
-        const result = await foodsCollection.insertOne(food)
-        res.send(result)
+      const token = req.cookies.token;
+
+      const result = await foodsCollection.insertOne(food)
+      res.send(result)
     })
 
       
