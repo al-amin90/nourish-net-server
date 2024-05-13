@@ -54,6 +54,7 @@ const tokenVerify = async (req, res, next) => {
     })
 }
 
+
 const cookieOption = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production"? true: false,
@@ -86,6 +87,14 @@ async function run() {
       res
         .clearCookie('token', {...cookieOption,maxAge: 0})
         .send({ success: true })
+    })
+
+       //  foods rest apis in home page
+      app.get('/foodsAcc', async (req, res) => {
+        const query = {statusFood: "available"}
+        const result = await foodsCollection.find(query).sort({foodQuantity: -1}).toArray()
+
+        res.send(result)
     })
 
 
@@ -147,14 +156,6 @@ async function run() {
           res.send(result)
       })
       
-    //  foods rest apis in home page
-      app.get('/foodsAcc', async (req, res) => {
-        const query = {statusFood: "available"}
-        const result = await foodsCollection.find(query).sort({foodQuantity: -1}).toArray()
-
-        res.send(result)
-    })
-
     //  post food
     app.post('/foods',tokenVerify, async (req, res) => {  
         const food = req.body;
