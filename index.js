@@ -76,6 +76,16 @@ async function run() {
           res
               .cookie('token', token, cookieOption)
               .send({success: true})
+      })
+    
+    // jwt logout
+    app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log("log out user", user);
+
+      res
+        .clearCookie('token', {...cookieOption,maxAge: 0})
+        .send({ success: true })
     })
 
 
